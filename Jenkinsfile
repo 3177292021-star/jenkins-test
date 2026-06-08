@@ -12,7 +12,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git credentialsId: 'github-credentials', url: env.GIT_REPO, branch: 'master'
+                git credentialsId: 'github-credentials', url: env.GIT_REPO, branch: 'main'
             }
         }
 

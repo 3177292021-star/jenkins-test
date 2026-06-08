@@ -1,0 +1,8 @@
+image:
+  repository: 3177292021-star/jenkins-test/my-app
+  tag: latest
+
+service:
+  type: NodePort
+  port: 80
+  nodePort: 30080

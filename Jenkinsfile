@@ -1,5 +1,29 @@
 pipeline {
-    agent any
+    agent {
+        kubernetes {
+            yaml """
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+  - name: kaniko
+    image: gcr.io/kaniko-project/executor:debug
+    imagePullPolicy: IfNotPresent
+    command: ["/busybox/cat"]
+    tty: true
+    volumeMounts:
+    - name: docker-config
+      mountPath: /kaniko/.docker
+  volumes:
+  - name: docker-config
+    secret:
+      secretName: dockerhub-secret
+      items:
+      - key: .dockerconfigjson
+        path: config.json
+"""
+        }
+    }
 
     environment {
         GIT_REPO = 'https://github.com/3177292021-star/jenkins-test.git'
@@ -16,13 +40,18 @@ pipeline {
             }
         }
 
-        stage('Build Image') {
+        stage('Build & Push Image') {
             steps {
-                script {
-                    def imageTag = env.BUILD_NUMBER
-                    sh "docker build -t ${DOCKER_IMAGE}:${imageTag} ."
-                    docker.withRegistry('', 'dockerhub-credentials') {
-                        sh "docker push ${DOCKER_IMAGE}:${imageTag}"
+                container('kaniko') {
+                    script {
+                        def imageTag = env.BUILD_NUMBER
+                        sh """
+                            /kaniko/executor \
+                                --context=\$(pwd) \
+                                --dockerfile=Dockerfile \
+                                --destination=${DOCKER_IMAGE}:${imageTag} \
+                                --cache=false
+                        """
                     }
                 }
             }
